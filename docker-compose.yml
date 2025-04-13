@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biblia-chat-app
+    ports:
+      - '3000:3000'
+    # depends_on: # Removed as DB is external
+    #   - db
+    env_file:
+      - .env.local # Pass environment variables from .env.local to the app container
+    # Environment variables for remote DB are already in .env.local and used by route.ts
+    # No network needed just for the app service
+
+# db service removed as the database is remote
+
+# volumes: # Removed as DB is external
+#   postgres_data:
+
+# networks: # Removed as DB is external
+#   biblia-chat-network:
+#     driver: bridge

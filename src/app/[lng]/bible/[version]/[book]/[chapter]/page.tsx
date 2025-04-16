@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getAllBibleVersions } from '@/lib/bible-version-service';
 import type { ApiVersion } from '@/app/components/version-selector-popover'; // Assuming type is defined here
 import { BibleChapterView } from '@/app/components/bible-chapter-view'; // Import the new client component view
+import BibliaChat from '@/app/components/BibliaChat';
 
 interface BiblePageProps {
   params: {
@@ -39,10 +40,7 @@ interface BibleApiResponse {
   usfm: string; // Top-level USFM for the chapter
   locale: string; // Language locale
   content: ContentItem[]; // Array of content items (headings, verses, etc.)
-  copyright?: { // Made optional as it might not always be present
-    html: string;
-    text: string;
-  };
+  copyright?: string;
   next_chapter: ChapterLink | null;
   previous_chapter: ChapterLink | null;
   version?: any; // Made optional, define more specific type if needed
@@ -199,14 +197,16 @@ export default async function BiblePage({ params: paramsProp }: { params: { lng:
 
   // Render the client component, passing data as props
   return (
-    <BibleChapterView
-      lng={lng}
-      version={version}
-      book={book}
-      chapter={chapter}
-      chapterData={chapterData}
-      allVersions={allVersions || []} // Pass empty array if fetch failed
-    />
+    <>
+      <BibleChapterView
+        lng={lng}
+        version={version}
+        book={book}
+        chapter={chapter}
+        chapterData={chapterData}
+        allVersions={allVersions || []} // Pass empty array if fetch failed
+      />
+    </>
   );
 }
 

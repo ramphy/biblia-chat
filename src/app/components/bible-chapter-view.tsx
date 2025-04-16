@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { BibleSelectorPopover } from '@/app/components/bible-selector-popover';
 import { VersionSelectorPopover } from '@/app/components/version-selector-popover';
 import { AudioBibleButton } from '@/app/components/audio-bible-button';
+import BibliaChat from '@/app/components/BibliaChat';
 import type { ApiVersion } from '@/app/components/version-selector-popover'; // Assuming type is defined here
 import { cn } from "@/lib/utils"; // Import cn utility for conditional classes
 
@@ -32,10 +33,7 @@ interface BibleApiResponse {
   usfm: string;
   locale: string;
   content: ContentItem[];
-  copyright?: {
-    html: string;
-    text: string;
-  };
+  copyright?: string;
   next_chapter: ChapterLink | null;
   previous_chapter: ChapterLink | null;
   version?: any;
@@ -97,6 +95,7 @@ export function BibleChapterView({
   chapterData,
   allVersions
 }: BibleChapterViewProps) {
+  const [showChat, setShowChat] = useState(false);
 
   const { title, content, previous_chapter, next_chapter } = chapterData;
   const prevLinkData = previous_chapter ? parseUsfm(previous_chapter.usfm[0]) : null;
@@ -105,10 +104,10 @@ export function BibleChapterView({
   return (
     <>
       {/* Main container: Apply max-width conditionally */}
-      <div className="container mx-auto py-8 max-w-3xl">
+      <div className="container flex">
 
         {/* Bible Text Card: Keep original classes, let flexbox handle width */}
-        <Card className="w-3xl">
+        <Card className={cn("flex-1 py-8 mx-auto max-w-3xl", showChat && "mr-6")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b pb-2">
             {/* Use h1 with specific Tailwind classes, displaying the title */}
             <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
@@ -135,6 +134,15 @@ export function BibleChapterView({
                 </div>
               </div>
               {/* Add the AudioBibleButton, passing necessary props */}
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => setShowChat(!showChat)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/>
+                </svg>
+              </Button>
               <AudioBibleButton
                 bibleAbbreviation={version} // Pass the version abbreviation
                 bibleBook={book} // Pass the book USFM code
@@ -148,6 +156,13 @@ export function BibleChapterView({
             <div className="text-base md:text-lg leading-relaxed space-y-4">
               {content.map(renderContentItem)}
             </div>
+
+            {/* Copyright Information */}
+            {chapterData.copyright && (
+              <div className="mt-6 text-sm text-muted-foreground text-center">
+                {chapterData.copyright}
+              </div>
+            )}
 
             {/* Navigation Buttons using shadcn Button */}
             <div className="flex justify-between mt-8 pt-4 border-t">
@@ -183,6 +198,12 @@ export function BibleChapterView({
         {/* Optional: Display Copyright - Consider styling if uncommented */}
         {/* <div style={{ marginTop: '2rem', fontSize: '0.8em', color: '#666', textAlign: 'center' }}
              dangerouslySetInnerHTML={{ __html: chapterData.copyright?.html }} /> */}
+      
+        {showChat && (
+          <div style={{ top: '20px' }} className="bg-card border rounded-xl sticky w-90 h-[calc(100vh-2rem)] z-50">
+            <BibliaChat />
+          </div>
+        )}
       </div>
     </>
   );

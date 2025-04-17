@@ -477,7 +477,7 @@ setAbortCtrl(controller);
           onDeleteTopic={handleDeleteTopic}
           icon={<List className="h-4 w-4" />}
         />
-        <h2 className="text-xl font-bold">Chat – {selectedTopic ? selectedTopic.name : "Tema automático"}</h2>
+        <h2 className="text-xl font-bold">Chat – {selectedTopic ? selectedTopic.name : ""}</h2>
       </div>
         {chat ? (
           <>
@@ -486,7 +486,7 @@ setAbortCtrl(controller);
                 chat.messages.map((msg, index) => (
                 <div key={index} className="mb-2 p-2 border rounded group">
                     <div className="flex justify-between items-center">
-                      <span className="font-semibold">{msg.role === "user" ? "Usuario" : "Asistente"}</span>
+                      <span className="font-semibold">{msg.role === "user" ? "" : "Asistente"}</span>
                       <div className="flex gap-1 hidden group-hover:flex">
 {msg.role === "user" && (
   <>

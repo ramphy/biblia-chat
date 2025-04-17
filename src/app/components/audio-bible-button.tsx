@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, X } from 'lucide-react'; // Using icons for the button and close
+import { Volume2, VolumeX, Play, Pause, X } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 
 interface AudioBibleButtonProps {
   bibleAbbreviation: string;
@@ -20,8 +21,64 @@ export function AudioBibleButton({
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlayerVisible, setIsPlayerVisible] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0];
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+    setVolume(newVolume);
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
 
   const handlePlayAudio = async () => {
+    // Si el reproductor está visible y hay audio, cerrarlo
+    if (isPlayerVisible && audioUrl) {
+      setAudioUrl(null);
+      setIsPlayerVisible(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setAudioUrl(null); // Reset audio URL on new request
@@ -58,6 +115,8 @@ export function AudioBibleButton({
       // Use the correct key 'audio_url' based on user feedback
       if (data.audio_url) {
         setAudioUrl(data.audio_url);
+        setIsPlaying(true);
+        setIsPlayerVisible(true);
       } else {
         console.warn('Audio URL (audio_url) not found in response:', data);
         setError('No se pudo obtener la URL del audio desde la respuesta.');
@@ -83,19 +142,74 @@ export function AudioBibleButton({
       {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
 
       {audioUrl && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-50 bg-card border rounded-lg shadow-lg p-3 flex items-center space-x-2">
-          <audio controls autoPlay src={audioUrl} className="flex-grow">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-50 bg-card border rounded-lg shadow-lg px-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={togglePlayPause}
+              aria-label={isPlaying ? 'Pausar' : 'Reproducir'}
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            </Button>
+
+            <div className="flex-1 mx-4" style={{ marginTop: '18px' }}>
+              <Slider
+                value={[currentTime]}
+                max={duration}
+                step={1}
+                onValueChange={handleSeek}
+                className="cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>-{formatTime(duration - currentTime)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2 w-24">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleVolumeChange([volume > 0 ? 0 : 1])}
+                aria-label={volume > 0 ? 'Silenciar' : 'Activar sonido'}
+              >
+                {volume > 0 ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
+              <Slider
+                value={[volume]}
+                max={1}
+                step={0.01}
+                onValueChange={handleVolumeChange}
+                className="w-full"
+              />
+            </div>
+
+            {/* <Button
+              variant="link"
+              size="icon"
+              onClick={() => {
+                setAudioUrl(null);
+                setIsPlayerVisible(false);
+              }}
+              className="absolute bottom-0 right-0 m-0 p-2 text-muted-foreground transform rotate-90"
+              aria-label="Cerrar reproductor de audio"
+            >
+              <X className="h-6 w-6" />
+            </Button> */}
+          </div>
+
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onEnded={() => setIsPlaying(false)}
+            autoPlay
+            className="hidden"
+          >
             Tu navegador no soporta el elemento de audio.
           </audio>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setAudioUrl(null)}
-            className="text-muted-foreground hover:text-foreground"
-            aria-label="Cerrar reproductor de audio"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       )}
     </>

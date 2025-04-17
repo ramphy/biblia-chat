@@ -120,7 +120,7 @@ export async function getAllBibleVersions(lng: string): Promise<ApiVersion[]> {
   // 3. Fetch data from the EXTERNAL API
   // console.log(`[Cache] Fetching all versions list for ${lng} from external API`);
   const fetchPromise = (async () => {
-    const apiUrl = `https://data.biblia.chat/api/${lng}/`; // Direct external API URL
+    const apiUrl = `https://data.biblia.chat/api/versions/${lng}/`; // Direct external API URL
     try {
       // Use { cache: 'no-store' } to ensure fresh data from the external API on each server-side fetch,
       // relying on our own in-memory cache (allVersionsCache) for subsequent requests within the same server instance/session.
@@ -135,14 +135,22 @@ export async function getAllBibleVersions(lng: string): Promise<ApiVersion[]> {
         }
         throw new Error(`Failed to fetch all Bible versions (${lng}): ${errorDetails}`);
       }
-      const data: AllVersionsApiResponse = await response.json();
+      const responseData = await response.json();
+      // Verify the new data structure
+      if (!responseData || !responseData.data) {
+        console.error('Unexpected data structure received from Bible API. Expected response.data property.');
+        console.error('Response Data:', responseData);
+        throw new Error('Invalid API response structure');
+      }
+      
+      const data: AllVersionsApiResponse = responseData.data;
 
       // Validate the structure before caching
-      if (!data?.response?.data?.versions || !Array.isArray(data.response.data.versions)) {
+      if (!data?.versions || !Array.isArray(data.versions)) {
          throw new Error(`Invalid data structure received from external API for all versions (${lng}).`);
       }
 
-      const versions = data.response.data.versions;
+      const versions = data.versions;
 
       // Store in all versions cache upon successful fetch
       allVersionsCache[cacheKey] = versions;

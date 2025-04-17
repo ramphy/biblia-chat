@@ -77,8 +77,15 @@ const getChapterData = cache(async (lng: string, version: string, book: string, 
       }
       return null; // Indicate failure
     }
-
-    const data: BibleApiResponse = await response.json();
+    const responseData = await response.json();
+    // Verify the new data structure
+    if (!responseData || !responseData.data) {
+      console.error('Unexpected data structure received from Bible API. Expected response.data property.');
+      console.error('Response Data:', responseData);
+      throw new Error('Invalid API response structure');
+    }
+    
+    const data: BibleApiResponse = responseData.data;
 
     // Basic validation for the new structure (checking title and content)
     if (data && data.title && data.content) {

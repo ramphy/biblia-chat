@@ -22,24 +22,29 @@ interface BookInfo {
   audio: boolean;
   canon: string;
   human: string; // e.g., "Génesis"
-  chapters: ChapterInfo[];
-  human_long: string;
-  abbreviation: string;
+  first_chapter: ChapterInfo;
+  last_chapter: ChapterInfo;
+  human_long?: string;
+  abbreviation?: string;
 }
 
-export interface BibleVersionData { // Add export keyword
-  id: number;
-  abbreviation: string;
-  local_abbreviation: string;
+export interface BibleVersionData {
   title: string;
-  local_title: string;
+  usfm: string;
   books: BookInfo[];
-  // Add other fields if needed
+  language: string;
+  direction: string;
+  publisher: Array<{
+    name: string;
+    description: string | null;
+    url: string;
+  }>;
+  notes: Array<{}>;
 }
 
 interface BibleNavigatorProps {
   lng: string;
-  currentVersionAbbr: string; // Add version prop
+  currentVersionUsfm: string; // Add version prop
   currentBookUsfm: string;
   onChapterSelect: (bookUsfm: string, chapter: string) => void;
   versionData: BibleVersionData | null;
@@ -49,7 +54,7 @@ interface BibleNavigatorProps {
 
 export function BibleNavigator({
   lng,
-  currentVersionAbbr, // Destructure new prop
+  currentVersionUsfm, // Destructure new prop
   currentBookUsfm,
   onChapterSelect,
   versionData,
@@ -81,8 +86,8 @@ export function BibleNavigator({
 
     return versionData.books.filter(book =>
       normalizeString(book.human).includes(normalizedSearchTerm) ||
-      normalizeString(book.human_long).includes(normalizedSearchTerm) ||
-      normalizeString(book.abbreviation).includes(normalizedSearchTerm)
+      (book.human_long && normalizeString(book.human_long).includes(normalizedSearchTerm)) ||
+      (book.abbreviation && normalizeString(book.abbreviation).includes(normalizedSearchTerm))
     );
   }, [versionData, searchTerm]); // Keep dependency on versionData prop
 
@@ -100,8 +105,20 @@ export function BibleNavigator({
 
   const canonicalChapters = useMemo(() => {
     if (!selectedBook) return [];
-    // Filter out non-canonical chapters like introductions
-    return selectedBook.chapters.filter(ch => ch.canonical);
+    // Generate chapters array from first to last chapter
+    const chapters = [];
+    const firstNum = parseInt(selectedBook.first_chapter.usfm.split('.')[1]);
+    const lastNum = parseInt(selectedBook.last_chapter.usfm.split('.')[1]);
+    
+    for (let i = firstNum; i <= lastNum; i++) {
+      chapters.push({
+        usfm: `${selectedBook.usfm}.${i}`,
+        human: i.toString(),
+        canonical: true,
+        toc: true
+      });
+    }
+    return chapters;
   }, [selectedBook]);
 
   // Use props for conditional rendering

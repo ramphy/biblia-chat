@@ -25,15 +25,15 @@ export async function GET(request: Request, { params: paramsProp }: RouteParams)
   // Await the params object before accessing its properties
   const params = await paramsProp;
   // Destructure bibleId, but treat its value as the abbreviation
-  const { lng, bibleId: bibleAbbreviation } = params; // Rename bibleId to bibleAbbreviation internally
+  const { bibleId: bibleAbbreviation } = params; // Rename bibleId to bibleAbbreviation internally
 
-  if (!lng || !bibleAbbreviation) {
+  if (!bibleAbbreviation) {
     // Use the internal variable name in the error message for clarity
     return NextResponse.json({ error: 'Missing language or Bible abbreviation parameter' }, { status: 400 });
   }
 
   // Use the bibleAbbreviation value (from the bibleId route param) in the external API URL
-  const externalApiUrl = `https://data.biblia.chat/api/${lng}/${bibleAbbreviation}`;
+  const externalApiUrl = `https://data.biblia.chat/api/${bibleAbbreviation}`;
   console.log(`Internal API route fetching from: ${externalApiUrl}`);
 
   try {
@@ -50,7 +50,15 @@ export async function GET(request: Request, { params: paramsProp }: RouteParams)
       );
     }
 
-    const data: ExternalBibleApiResponse = await response.json();
+    const responseData = await response.json();
+    // Verify the new data structure
+    if (!responseData || !responseData.data) {
+      console.error('Unexpected data structure received from Bible API. Expected response.data property.');
+      console.error('Response Data:', responseData);
+      throw new Error('Invalid API response structure');
+    }
+
+    const data: ExternalBibleApiResponse = responseData.data;
 
     if (!data || !data.books) {
         console.error('Invalid data structure received from external API.');

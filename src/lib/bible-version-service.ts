@@ -7,6 +7,7 @@ interface ApiVersion {
   local_abbreviation: string;
   title: string;
   local_title: string;
+  usfm: string;
   language: {
     name: string;
     local_name: string;
@@ -14,10 +15,8 @@ interface ApiVersion {
 }
 
 interface AllVersionsApiResponse {
-  response: {
-    data: {
-      versions: ApiVersion[];
-    };
+  data: {
+    versions: ApiVersion[];
   };
 }
 
@@ -34,16 +33,13 @@ const ongoingAllVersionsFetches: Record<string, Promise<ApiVersion[]>> = {};
 
 /**
  * Fetches data for a SPECIFIC Bible version (e.g., books), utilizing an in-memory cache.
- * for the same language and bible abbreviation within the session.
- * @param lng - Language code
  * @param bibleAbbreviation - Bible version abbreviation (e.g., 'RVR1960')
  * @returns Promise resolving to the BibleVersionData
  */
-export async function getCachedBibleVersionByAbbreviation(
-  lng: string,
-  bibleAbbreviation: string
+export async function getCachedBibleVersionByUsfm(
+  bibleUsfm: string
 ): Promise<BibleVersionData> {
-  const cacheKey = `${lng}-${bibleAbbreviation}`;
+  const cacheKey = bibleUsfm;
 
   // 1. Check specific version cache first
   if (specificVersionCache[cacheKey]) {
@@ -58,7 +54,7 @@ export async function getCachedBibleVersionByAbbreviation(
   // 3. Fetch specific version data from the internal API
   const fetchPromise = (async () => {
     // This still uses the internal API route, as it fetches specific version details (books etc.)
-    const apiUrl = `/api/bible-version/${lng}/${bibleAbbreviation}`;
+    const apiUrl = `/api/bible-version/${bibleUsfm}`;
     try {
       const response = await fetch(apiUrl);
       if (!response.ok) {
@@ -143,14 +139,12 @@ export async function getAllBibleVersions(lng: string): Promise<ApiVersion[]> {
         throw new Error('Invalid API response structure');
       }
       
-      const data: AllVersionsApiResponse = responseData.data;
-
       // Validate the structure before caching
-      if (!data?.versions || !Array.isArray(data.versions)) {
+      if (!responseData?.data?.versions || !Array.isArray(responseData.data.versions)) {
          throw new Error(`Invalid data structure received from external API for all versions (${lng}).`);
       }
 
-      const versions = data.versions;
+      const versions = responseData.data.versions;
 
       // Store in all versions cache upon successful fetch
       allVersionsCache[cacheKey] = versions;

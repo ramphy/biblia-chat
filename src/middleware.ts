@@ -42,7 +42,7 @@ export function middleware(req: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     } else {
       // Optional: Handle case where language exists but no default version is defined
-      console.warn(`No default Bible version defined for language: ${langFromPath}`);
+      console.warn(`No default User language: ${langFromPath}`);
     }
   }
 

@@ -9,6 +9,7 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 interface Topic {
   id?: number;
   name: string;
+  lastMessageDate?: Date;
 }
 
 interface TopicsPopoverProps {
@@ -51,7 +52,7 @@ export default function TopicsPopover({
           {icon || "Temas"}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent className="w-80" align="start" side="left">
         <div className="flex flex-col gap-4">
           <h2 className="text-lg font-bold">Temas</h2>
           <div className="flex gap-2">
@@ -69,8 +70,14 @@ export default function TopicsPopover({
               <Plus size={16} />
             </Button>
           </div>
-          <ul className="space-y-2">
-            {topics.map((topic) => (
+          <ul className="space-y-2 max-h-96 overflow-y-auto">
+            {topics
+              .sort((a, b) => {
+                if (!a.lastMessageDate) return 1;
+                if (!b.lastMessageDate) return -1;
+                return b.lastMessageDate.getTime() - a.lastMessageDate.getTime();
+              })
+              .map((topic) => (
               <li
                 key={topic.id}
                 className={`flex justify-between items-center p-2 rounded group ${

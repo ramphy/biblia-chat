@@ -1,11 +1,12 @@
 'use client'; // This is the client component
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BibleSelectorPopover } from '@/app/components/bible-selector-popover';
 import { VersionSelectorPopover } from '@/app/components/version-selector-popover';
+import { LanguageSelectorPopover } from '@/app/components/language-selector-popover';
 import { AudioBibleButton } from '@/app/components/audio-bible-button';
 import BibliaChat from '@/app/components/BibliaChat';
 import type { ApiVersion } from '@/app/components/version-selector-popover'; // Assuming type is defined here
@@ -97,6 +98,27 @@ export function BibleChapterView({
 }: BibleChapterViewProps) {
   const [showChat, setShowChat] = useState(false);
 
+  useEffect(() => {
+    const storedValue = typeof window !== 'undefined' 
+      ? localStorage.getItem('bibliaChatOpen')
+      : 'false';
+    setShowChat(JSON.parse(storedValue || 'false'));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bibliaChatOpen', JSON.stringify(showChat));
+    }
+  }, [showChat]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('bibliaChatOpen');
+      }
+    };
+  }, []);
+
   const { title, content, previous_chapter, next_chapter } = chapterData;
   const prevLinkData = previous_chapter ? parseUsfm(previous_chapter.usfm[0]) : null;
   const nextLinkData = next_chapter ? parseUsfm(next_chapter.usfm[0]) : null;
@@ -107,17 +129,24 @@ export function BibleChapterView({
       <div className="container flex">
 
         {/* Bible Text Card: Keep original classes, let flexbox handle width */}
-        <Card className={cn("flex-1 py-8 mx-auto max-w-3xl", showChat && "mr-6")}>
+        <Card className="flex-1 py-8 mx-auto max-w-3xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b pb-2">
             {/* Use h1 with specific Tailwind classes, displaying the title */}
             <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
             {/* Container for buttons */}
             <div className="flex items-center gap-2">
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <BibleSelectorPopover
+                <div className="flex gap-2">
+                  <div className="w-40">
+                    <LanguageSelectorPopover
+                      lng={lng}
+                      currentBookUsfm={book}
+                      currentChapter={chapter}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <BibleSelectorPopover
                     lng={lng}
-                    currentVersionAbbr={version} // Pass current version
+                    currentVersionUsfm={version} // Changed from abbreviation to usfm
                     currentBookUsfm={book}
                     currentChapter={chapter}
                     currentReferenceHuman={title} // Pass the title (formerly reference.human)
@@ -144,7 +173,7 @@ export function BibleChapterView({
                 </svg>
               </Button>
               <AudioBibleButton
-                bibleAbbreviation={version} // Pass the version abbreviation
+                bibleUsfm={version} // Changed from abbreviation to usfm
                 bibleBook={book} // Pass the book USFM code
                 bibleChapter={chapter} // Pass the chapter number
                 bibleLang={lng} // Pass the language
@@ -200,7 +229,7 @@ export function BibleChapterView({
              dangerouslySetInnerHTML={{ __html: chapterData.copyright?.html }} /> */}
       
         {showChat && (
-          <div style={{ top: '20px' }} className="bg-card border rounded-xl sticky w-90 h-[calc(100vh-2rem)] z-50">
+          <div className="bg-card border rounded-xl fixed w-90 h-[calc(100vh-2rem)] right-0 top-14 z-50">
             <BibliaChat />
           </div>
         )}

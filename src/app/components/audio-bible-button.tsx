@@ -6,14 +6,14 @@ import { Volume2, VolumeX, Play, Pause, X } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
 interface AudioBibleButtonProps {
-  bibleAbbreviation: string;
+  bibleUsfm: string;
   bibleBook: string;
   bibleChapter: string;
   bibleLang: string;
 }
 
 export function AudioBibleButton({
-  bibleAbbreviation,
+  bibleUsfm,
   bibleBook,
   bibleChapter,
   bibleLang,
@@ -91,7 +91,7 @@ export function AudioBibleButton({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          bible_abbreviation: bibleAbbreviation,
+          bible_usfm: bibleUsfm,
           bible_book: bibleBook,
           bible_chapter: bibleChapter,
           bible_lang: bibleLang,

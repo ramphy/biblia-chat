@@ -12,12 +12,12 @@ import {
 // Import BibleNavigator and its data type
 import { BibleNavigator, type BibleVersionData } from './bible-navigator';
 // Import the caching service
-import { getCachedBibleVersionByAbbreviation } from '@/lib/bible-version-service';
+import { getCachedBibleVersionByUsfm } from '@/lib/bible-version-service';
 import { ChevronDown } from 'lucide-react';
 
 interface BibleSelectorPopoverProps {
   lng: string;
-  currentVersionAbbr: string; // Add version abbreviation prop
+  currentVersionUsfm: string; // Changed from abbreviation to usfm
   currentBookUsfm: string;
   currentChapter: string;
   currentReferenceHuman: string; // e.g., "Génesis 1"
@@ -25,7 +25,7 @@ interface BibleSelectorPopoverProps {
 
 export function BibleSelectorPopover({
   lng,
-  currentVersionAbbr, // Use new prop
+  currentVersionUsfm, // Use usfm instead of abbreviation
   currentBookUsfm,
   currentChapter,
   currentReferenceHuman,
@@ -40,7 +40,7 @@ export function BibleSelectorPopover({
   // Effect to get data using the cache service when the popover opens
   useEffect(() => {
     // Only attempt to get data if the popover is open and we have lng/currentVersionAbbr
-    if (isOpen && lng && currentVersionAbbr) { // Use currentVersionAbbr
+    if (isOpen && lng && currentVersionUsfm) { // Use currentVersionUsfm
       // Indicate loading only if data isn't already present
       if (!versionData) {
         setIsLoading(true);
@@ -48,11 +48,11 @@ export function BibleSelectorPopover({
       setError(null); // Clear previous errors
 
       // Fetch data based on the current version abbreviation
-      getCachedBibleVersionByAbbreviation(lng, currentVersionAbbr)
+      getCachedBibleVersionByUsfm(currentVersionUsfm)
         .then(data => {
           // Check if the fetched data's abbreviation matches the current prop
           // This prevents updating state with stale data if the version changed while fetching
-          if (data?.abbreviation === currentVersionAbbr) {
+          if (data?.usfm === currentVersionUsfm) {
              setVersionData(data);
           } else if (data) {
              // If abbreviations don't match, it means the version changed.
@@ -75,7 +75,7 @@ export function BibleSelectorPopover({
       // setVersionData(null);
     }
     // Dependency array: run when popover opens/closes or identifiers change
-  }, [isOpen, lng, currentVersionAbbr]); // Use currentVersionAbbr in dependency array
+  }, [isOpen, lng, currentVersionUsfm]); // Use currentVersionUsfm in dependency array
 
 
   const handleChapterSelect = (bookUsfm: string, chapter: string) => {
@@ -83,7 +83,7 @@ export function BibleSelectorPopover({
     // Only navigate if the selection is different from the current page
     if (bookUsfm !== currentBookUsfm || chapter !== currentChapter) {
         // Include the current version abbreviation in the navigation URL
-        router.push(`/${lng}/bible/${currentVersionAbbr}/${bookUsfm}/${chapter}`);
+        router.push(`/${lng}/bible/${currentVersionUsfm}/${bookUsfm}/${chapter}`);
     }
   };
 
@@ -103,7 +103,7 @@ export function BibleSelectorPopover({
         {isOpen && (
             <BibleNavigator
               lng={lng}
-              currentVersionAbbr={currentVersionAbbr} // Pass version down
+              currentVersionUsfm={currentVersionUsfm} // Pass version down
               currentBookUsfm={currentBookUsfm}
               onChapterSelect={handleChapterSelect}
               versionData={versionData}

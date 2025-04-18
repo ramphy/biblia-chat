@@ -57,7 +57,7 @@ const getChapterData = cache(async (lng: string, version: string, book: string, 
   // Ensure book is in the correct format (e.g., psa for Psalms)
   const formattedBook = book.toLowerCase(); // Use lowercase based on example URL
   // Use the version parameter in the external API URL
-  const apiUrl = `https://data.biblia.chat/api/${lng}/${version}/${formattedBook}/${chapter}`; // Use version parameter
+  const apiUrl = `https://data.biblia.chat/api/${version}/${formattedBook}/${chapter}`; // Use version parameter
 
   console.log(`Fetching Bible data from: ${apiUrl}`); // Log the dynamic URL
 

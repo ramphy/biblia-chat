@@ -12,6 +12,7 @@ import { Plus, Edit, Trash2, Play, StopCircle, Copy, Loader2, Send, Share2, List
 interface Topic {
   id?: number;
   name: string;
+  lastMessageDate?: Date;
 }
 
 interface ChatMessage {
@@ -24,6 +25,8 @@ interface ChatMessage {
   finished?: boolean;
   // Guarda las ediciones anteriores como ramas
   branches?: ChatMessage[];
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface Chat {
@@ -146,7 +149,8 @@ const BibliaChat: React.FC = () => {
     if (newMessage.trim() === "") return;
     let currentTopic = selectedTopic;
     if (!currentTopic) {
-      const newTopic: Topic = { name: "Tema automático" };
+      const topicName = newMessage.trim().split(/\s+/).slice(0, 3).join(' ') || "Nuevo tema";
+      const newTopic: Topic = { name: topicName };
       const topicId = await db.topics.add(newTopic);
       newTopic.id = topicId;
       setTopics((prev) => [...prev, newTopic]);
@@ -167,7 +171,16 @@ const BibliaChat: React.FC = () => {
       }
       setChat(currentChat);
     }
-    const userMsg: ChatMessage = { content: newMessage, role: "user" };
+    // Actualizar lastMessageDate del topic
+    await db.topics.update(currentTopic.id!, { lastMessageDate: new Date() });
+    setTopics(topics.map(t => t.id === currentTopic.id ? { ...t, lastMessageDate: new Date() } : t));
+    
+    const userMsg: ChatMessage = { 
+      content: newMessage, 
+      role: "user",
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     const updatedMessages = [...currentChat.messages, userMsg];
     const updatedChat = { ...currentChat, messages: updatedMessages };
     await db.chats.update(currentChat.id!, { messages: updatedMessages });
@@ -197,7 +210,12 @@ const BibliaChat: React.FC = () => {
     const updatedMessages = chat.messages.map((msg, index) => {
       if (index === editingMessageId) {
         const branches = msg.branches ? [...msg.branches] : [];
-        branches.push({ content: editMessageValue, role: msg.role });
+        branches.push({ 
+          content: editMessageValue, 
+          role: msg.role,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
         return { ...msg, branches };
       }
       return msg;
@@ -266,7 +284,12 @@ setIsSending(true);
 const controller = new AbortController();
 setAbortCtrl(controller);
     // Agrega un mensaje de "assistant" vacío para la respuesta
-    const assistantMsg: ChatMessage = { content: "", role: "assistant" };
+    const assistantMsg: ChatMessage = { 
+      content: "", 
+      role: "assistant",
+      created_at: new Date(),
+      updated_at: new Date()
+    };
     const newMessages = [...currentChat.messages, assistantMsg];
     const newChatState = { ...currentChat, messages: newMessages };
     await db.chats.update(currentChat.id!, { messages: newMessages });
@@ -481,51 +504,68 @@ setAbortCtrl(controller);
       </div>
         {chat ? (
           <>
-            <div className="mb-4 h-96 overflow-y-auto">
+            <div className="mb-4 flex-grow overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
               {chat.messages.length > 0 ? (
                 chat.messages.map((msg, index) => (
-                <div key={index} className="mb-2 p-2 border rounded group">
+                <div key={index} className="group">
+                  <div className={`mb-2 p-2 rounded ${msg.role === "user" ? "" : "border"}`}>
                     <div className="flex justify-between items-center">
                       <span className="font-semibold">{msg.role === "user" ? "" : "Asistente"}</span>
-                      <div className="flex gap-1 hidden group-hover:flex">
-{msg.role === "user" && (
-  <>
-  <Button variant="outline" size="icon" aria-label="Editar mensaje" onClick={() => startEditMessage(index, msg.content)}>
-    <Edit size={16} />
-  </Button>
-  <Button variant="outline" size="icon" aria-label="Eliminar mensaje" onClick={() => handleDeleteMessage(index)}>
-    <Trash2 size={16} />
-  </Button>
-  </>
-)}
-{msg.role === "assistant" ? (
-  msg.finished ? (
-    <>
-      <Button variant="outline" size="icon" aria-label="Eliminar mensaje" onClick={() => handleDeleteMessage(index)}>
-        <Trash2 size={16} />
-      </Button>
-      <Button variant="outline" size="icon" aria-label="Escuchar mensaje" onClick={() => handleReproducirMessage(msg, index)} disabled={msg.isDownloading}>
-        {msg.isDownloading ? <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" role="status" aria-live="polite"></span> : (playingIndex === index ? <StopCircle size={16} /> : <Play size={16} />)}
-      </Button>
-      <Button variant="outline" size="icon" aria-label="Compartir mensaje" onClick={() => shareMessage(index)}>
-        <Share2 size={16} />
-      </Button>
-      <Button variant="outline" size="icon" aria-label="Copiar mensaje" onClick={() => copyMessage(index)}>
-        <Copy size={16} />
-      </Button>
-    </>
-  ) : null
-) : (
-  <Button variant="outline" size="icon" aria-label="Copiar mensaje" onClick={() => copyMessage(index)}>
-    <Copy size={16} />
-  </Button>
-)}
-                      </div>
+                      <span 
+                        className="text-sm text-gray-500"
+                        title={msg.created_at.toLocaleString('es-VE', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric', 
+                          hour: 'numeric', 
+                          minute: '2-digit' 
+                        })}
+                      >
+                        {msg.created_at.toLocaleTimeString('es-VE', { hour: 'numeric', minute: '2-digit' })}
+                      </span>
                     </div>
                     <div className="mt-1">
                       <ReactMarkdown>
                         {msg.content}
                       </ReactMarkdown>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {msg.role === "user" && (
+                        <React.Fragment>
+                          <Button variant="outline" size="icon" aria-label="Editar mensaje" onClick={() => startEditMessage(index, msg.content)}>
+                            <Edit size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" aria-label="Eliminar mensaje" onClick={() => handleDeleteMessage(index)}>
+                            <Trash2 size={16} />
+                          </Button>
+                        </React.Fragment>
+                      )}
+                      {msg.role === "assistant" && msg.finished && (
+                        <React.Fragment>
+                          <Button variant="outline" size="icon" aria-label="Eliminar mensaje" onClick={() => handleDeleteMessage(index)}>
+                            <Trash2 size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" aria-label="Escuchar mensaje" onClick={() => handleReproducirMessage(msg, index)} disabled={msg.isDownloading}>
+                            {msg.isDownloading ? (
+                              <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" role="status" aria-live="polite"></span>
+                            ) : (
+                              playingIndex === index ? <StopCircle size={16} /> : <Play size={16} />
+                            )}
+                          </Button>
+                          <Button variant="outline" size="icon" aria-label="Compartir mensaje" onClick={() => shareMessage(index)}>
+                            <Share2 size={16} />
+                          </Button>
+                          <Button variant="outline" size="icon" aria-label="Copiar mensaje" onClick={() => copyMessage(index)}>
+                            <Copy size={16} />
+                          </Button>
+                        </React.Fragment>
+                      )}
+                      {msg.role !== "assistant" && (
+                        <Button variant="outline" size="icon" aria-label="Copiar mensaje" onClick={() => copyMessage(index)}>
+                          <Copy size={16} />
+                        </Button>
+                      )}
                     </div>
                     {msg.branches && msg.branches.length > 0 && (
                       <div className="mt-1 ml-4 text-sm text-gray-600">
@@ -561,7 +601,7 @@ setAbortCtrl(controller);
           </>
         ) : (
           <>
-            <div className="p-4 mb-4 h-96 overflow-y-auto">
+            <div className="mb-4 flex-grow overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
               <p className="text-gray-500">El chat se iniciará al enviar el primer mensaje.</p>
             </div>
           </>
